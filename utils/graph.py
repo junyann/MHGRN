@@ -113,9 +113,6 @@ def concepts2adj(node_ids):
     cids = np.array(node_ids, dtype=np.int32)
     n_rel = len(id2relation)
     n_node = cids.shape[0]
-    if n_node == 0:
-        cids = np.array([0], dtype=np.int32)
-        n_node = 1
     adj = np.zeros((n_rel, n_node, n_node), dtype=np.uint8)
     for s in range(n_node):
         for t in range(n_node):
@@ -129,58 +126,6 @@ def concepts2adj(node_ids):
     return adj, cids
 
 
-def concepts_to_adj_matrices_1hop_neighbours(data):
-    qc_ids, ac_ids = data
-    qa_nodes = set(qc_ids) | set(ac_ids)
-    extra_nodes = set()
-    for u in set(qc_ids) | set(ac_ids):
-        if u in cpnet.nodes:
-            extra_nodes |= set(cpnet[u])
-    extra_nodes = extra_nodes - qa_nodes
-    schema_graph = sorted(qc_ids) + sorted(ac_ids) + sorted(extra_nodes)
-    arange = np.arange(len(schema_graph))
-    qmask = arange < len(qc_ids)
-    amask = (arange >= len(qc_ids)) & (arange < (len(qc_ids) + len(ac_ids)))
-    adj, concepts = concepts2adj(schema_graph)
-    return adj, concepts, qmask, amask
-
-
-def concepts_to_adj_matrices_1hop_neighbours_without_relatedto(data):
-    qc_ids, ac_ids = data
-    qa_nodes = set(qc_ids) | set(ac_ids)
-    extra_nodes = set()
-    for u in set(qc_ids) | set(ac_ids):
-        if u in cpnet.nodes:
-            for v in cpnet[u]:
-                for data in cpnet[u][v].values():
-                    if data['rel'] not in (15, 32):
-                        extra_nodes.add(v)
-    extra_nodes = extra_nodes - qa_nodes
-    schema_graph = sorted(qc_ids) + sorted(ac_ids) + sorted(extra_nodes)
-    arange = np.arange(len(schema_graph))
-    qmask = arange < len(qc_ids)
-    amask = (arange >= len(qc_ids)) & (arange < (len(qc_ids) + len(ac_ids)))
-    adj, concepts = concepts2adj(schema_graph)
-    return adj, concepts, qmask, amask
-
-
-def concepts_to_adj_matrices_2hop_qa_pair(data):
-    qc_ids, ac_ids = data
-    qa_nodes = set(qc_ids) | set(ac_ids)
-    extra_nodes = set()
-    for qid in qc_ids:
-        for aid in ac_ids:
-            if qid != aid and qid in cpnet_simple.nodes and aid in cpnet_simple.nodes:
-                extra_nodes |= set(cpnet_simple[qid]) & set(cpnet_simple[aid])
-    extra_nodes = extra_nodes - qa_nodes
-    schema_graph = sorted(qc_ids) + sorted(ac_ids) + sorted(extra_nodes)
-    arange = np.arange(len(schema_graph))
-    qmask = arange < len(qc_ids)
-    amask = (arange >= len(qc_ids)) & (arange < (len(qc_ids) + len(ac_ids)))
-    adj, concepts = concepts2adj(schema_graph)
-    return adj, concepts, qmask, amask
-
-
 def concepts_to_adj_matrices_2hop_all_pair(data):
     qc_ids, ac_ids = data
     qa_nodes = set(qc_ids) | set(ac_ids)
@@ -190,55 +135,8 @@ def concepts_to_adj_matrices_2hop_all_pair(data):
             if qid != aid and qid in cpnet_simple.nodes and aid in cpnet_simple.nodes:
                 extra_nodes |= set(cpnet_simple[qid]) & set(cpnet_simple[aid])
     extra_nodes = extra_nodes - qa_nodes
-    schema_graph = sorted(qc_ids) + sorted(ac_ids) + sorted(extra_nodes)
-    arange = np.arange(len(schema_graph))
-    qmask = arange < len(qc_ids)
-    amask = (arange >= len(qc_ids)) & (arange < (len(qc_ids) + len(ac_ids)))
-    adj, concepts = concepts2adj(schema_graph)
-    return adj, concepts, qmask, amask
-
-
-def concepts_to_adj_matrices_2step_relax_all_pair(data):
-    qc_ids, ac_ids = data
-    qa_nodes = set(qc_ids) | set(ac_ids)
-    extra_nodes = set()
-    for qid in qc_ids:
-        for aid in ac_ids:
-            if qid != aid and qid in cpnet_simple.nodes and aid in cpnet_simple.nodes:
-                extra_nodes |= set(cpnet_simple[qid]) & set(cpnet_simple[aid])
-    intermediate_ids = extra_nodes - qa_nodes
-    for qid in intermediate_ids:
-        for aid in ac_ids:
-            if qid != aid and qid in cpnet_simple.nodes and aid in cpnet_simple.nodes:
-                extra_nodes |= set(cpnet_simple[qid]) & set(cpnet_simple[aid])
-    for qid in qc_ids:
-        for aid in intermediate_ids:
-            if qid != aid and qid in cpnet_simple.nodes and aid in cpnet_simple.nodes:
-                extra_nodes |= set(cpnet_simple[qid]) & set(cpnet_simple[aid])
-    extra_nodes = extra_nodes - qa_nodes
-    schema_graph = sorted(qc_ids) + sorted(ac_ids) + sorted(extra_nodes)
-    arange = np.arange(len(schema_graph))
-    qmask = arange < len(qc_ids)
-    amask = (arange >= len(qc_ids)) & (arange < (len(qc_ids) + len(ac_ids)))
-    adj, concepts = concepts2adj(schema_graph)
-    return adj, concepts, qmask, amask
-
-
-def concepts_to_adj_matrices_3hop_qa_pair(data):
-    qc_ids, ac_ids = data
-    qa_nodes = set(qc_ids) | set(ac_ids)
-    extra_nodes = set()
-    for qid in qc_ids:
-        for aid in ac_ids:
-            if qid != aid and qid in cpnet_simple.nodes and aid in cpnet_simple.nodes:
-                for u in cpnet_simple[qid]:
-                    for v in cpnet_simple[aid]:
-                        if cpnet_simple.has_edge(u, v):  # ac is a 3-hop neighbour of qc
-                            extra_nodes.add(u)
-                            extra_nodes.add(v)
-                        if u == v:  # ac is a 2-hop neighbour of qc
-                            extra_nodes.add(u)
-    extra_nodes = extra_nodes - qa_nodes
+    if len(qa_nodes) == 0 and len(extra_nodes) == 0:
+        extra_nodes = {0}  # add a dummy node as the extra node
     schema_graph = sorted(qc_ids) + sorted(ac_ids) + sorted(extra_nodes)
     arange = np.arange(len(schema_graph))
     qmask = arange < len(qc_ids)
