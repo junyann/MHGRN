@@ -113,6 +113,9 @@ def concepts2adj(node_ids):
     cids = np.array(node_ids, dtype=np.int32)
     n_rel = len(id2relation)
     n_node = cids.shape[0]
+    if n_node == 0:
+        cids = np.array([0], dtype=np.int32)
+        n_node = 1
     adj = np.zeros((n_rel, n_node, n_node), dtype=np.uint8)
     for s in range(n_node):
         for t in range(n_node):
