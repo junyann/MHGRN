@@ -47,7 +47,7 @@ def find_paths_qa_concept_pair(source: str, target: str, ifprint=False):
         return []
 
     all_path = []
-    for p in nx.all_simple_paths(cpnet_simple, source=s, target=t, cutoff=2):
+    for p in nx.all_simple_paths(cpnet_simple, source=s, target=t, cutoff=1):
         if len(p) >= 2:  # skip paths of length 1
             all_path.append(p)
 
